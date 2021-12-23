@@ -260,22 +260,27 @@ public class BbsApiImpl implements BbsApi {
 	@Override
 	public void autoConfirm(String xTokenID, AutoConfirmRequest autoConfirmRequest) throws CustomException {
 		List<BookingConfirmRequest> listBookingConfirmRequest=bookingMapper.mapAutoConfirmReq(autoConfirmRequest);
-		for(BookingConfirmRequest bookingConfirmReq:listBookingConfirmRequest) {
-		List<BedBooking> bedBookings;
-		if (Objects.nonNull(bookingConfirmReq) && Objects.nonNull(bookingConfirmReq.getLocationDetail())
-				&& Objects.nonNull(bookingConfirmReq.getLocationDetail().getPinNumber())) {
-			bedBookings = booking.findAll().stream().filter(
-					bedBooking -> Constants.PENDING.equalsIgnoreCase(bedBooking.getStatus()) && bookingConfirmReq
-							.getLocationDetail().getPinNumber().equalsIgnoreCase(bedBooking.getPatientPinCode()))
-					.sorted(Comparator.comparing(BedBooking::getBookingDateTime)).collect(Collectors.toList());
-		} else {
-			throw new InvalidRequestException("Location details are invalid or not present");
-		}
 
-		if (!bedBookings.isEmpty()) {
-			confirmBooking(xTokenID, bedBookings.get(0).getBookingID(), bookingConfirmReq);
-		}
-		}
+		listBookingConfirmRequest.forEach(bookingConfirmReq -> {
+			List<BedBooking> bedBookings;
+			if (Objects.nonNull(bookingConfirmReq) && Objects.nonNull(bookingConfirmReq.getLocationDetail())
+					&& Objects.nonNull(bookingConfirmReq.getLocationDetail().getPinNumber())) {
+				bedBookings = booking.findAll().stream().filter(
+						bedBooking -> Constants.PENDING.equalsIgnoreCase(bedBooking.getStatus()) && bookingConfirmReq
+								.getLocationDetail().getPinNumber().equalsIgnoreCase(bedBooking.getPatientPinCode()))
+						.sorted(Comparator.comparing(BedBooking::getBookingDateTime)).collect(Collectors.toList());
+			} else {
+				throw new InvalidRequestException("Location details are invalid or not present");
+			}
+
+			if (!bedBookings.isEmpty()) {
+				try {
+					confirmBooking(xTokenID, bedBookings.get(0).getBookingID(), bookingConfirmReq);
+				} catch (CustomException e) {
+					e.printStackTrace();
+				}
+			}
+		});
 	}
 
 	private ResponseEntity<BedAvailableInPinCode> getBedAvailaibilityDetails(String xTokenID,
