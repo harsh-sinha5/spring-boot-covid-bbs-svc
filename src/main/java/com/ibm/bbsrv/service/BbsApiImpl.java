@@ -68,8 +68,8 @@ public class BbsApiImpl implements BbsApi {
 	 * Bed Booking
 	 * @throws CustomException 
 	 * 
-	 * @throws UpdateConfirmStatusInBasServiceException
-	 * @throws BookingBedtoPatientServiceException
+	 * @throwsUpdateConfirmStatusInBasServiceException
+	 * @throwsBookingBedtoPatientServiceException
 	 * 
 	 */
 
@@ -170,7 +170,7 @@ public class BbsApiImpl implements BbsApi {
 	 * Booking Status
 	 * @throws CustomException 
 	 * 
-	 * @throws BedAvailaibilityServiceException
+	 * @throwsBedAvailaibilityServiceException
 	 * 
 	 */
 
@@ -303,6 +303,21 @@ public class BbsApiImpl implements BbsApi {
 			throw new CustomException("BOOK API - Bed Availaibility API By pincode not avalable");
 		}
 
+	}
+
+	public void autoConfirmBooking(AutoConfirmRequest bookingConfirmRequest) throws CustomException {
+
+		List<BedBooking> bedBookings = booking.findAll().stream().filter(bedBooking -> Constants.PENDING.equalsIgnoreCase(bedBooking.getStatus())
+				&& bookingConfirmRequest.getLocationDetail()
+				.getPinNumber().equalsIgnoreCase(bedBooking.getPatientPinCode()))
+				.sorted(Comparator.comparing(BedBooking::getBookingDateTime))
+				.collect(Collectors.toList());
+
+		List<BookingConfirmRequest> autoConfirmRequest = bookingMapper.mapAutoConfirmReq(bookingConfirmRequest);
+
+		if ( !bedBookings.isEmpty()) {
+			confirmBooking(null, bedBookings.get(0).getBookingID(), autoConfirmRequest.get(0));
+		}
 	}
 
 	private void createBedBookingData(String xTokenID,BookingUserData bookingUserData) throws PatientPendingException{
